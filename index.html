@@ -207,7 +207,6 @@
         id="userEmail"
       ></p>
 
-
       <!-- SEARCH USERS -->
 
       <input
@@ -216,7 +215,6 @@
         placeholder="Search username..."
         oninput="filterUsers()"
       >
-
 
       <!-- USERS -->
 
@@ -228,13 +226,11 @@
 
       </div>
 
-
       <!-- SELECTED USER -->
 
       <div id="selectedUser">
         Select a user to start chatting
       </div>
-
 
       <!-- CHAT -->
 
@@ -246,7 +242,6 @@
 
       </div>
 
-
       <input
         type="text"
         id="messageInput"
@@ -254,11 +249,9 @@
         onkeydown="handleEnter(event)"
       >
 
-
       <button onclick="sendMessage()">
         Send Message
       </button>
-
 
       <button
         class="logout"
@@ -266,7 +259,6 @@
       >
         Logout
       </button>
-
 
       <p id="chatStatus"></p>
 
@@ -288,6 +280,10 @@
     "sb_publishable_LleoXFDRl1yzthwFgZfYg_MrqjJX0O";
 
 
+  /* =====================================
+     CREATE SUPABASE CLIENT
+     ===================================== */
+
   const supabaseClient =
     window.supabase.createClient(
       SUPABASE_URL,
@@ -296,7 +292,7 @@
 
 
   /* =====================================
-     CURRENT SELECTED USER
+     VARIABLES
      ===================================== */
 
   let selectedUser = null;
@@ -338,15 +334,14 @@
     const { data, error } =
       await supabaseClient.auth
         .signInWithPassword({
-
           email: email,
-
           password: password
-
         });
 
 
     if (error) {
+
+      console.log("LOGIN ERROR:", error);
 
       status.innerText =
         error.message;
@@ -359,7 +354,7 @@
       "Login successful!";
 
 
-    showChat(data.user);
+    await showChat(data.user);
 
   }
 
@@ -407,15 +402,14 @@
     const { data, error } =
       await supabaseClient.auth
         .signUp({
-
           email: email,
-
           password: password
-
         });
 
 
     if (error) {
+
+      console.log("SIGNUP ERROR:", error);
 
       status.innerText =
         error.message;
@@ -486,7 +480,7 @@
 
     if (error) {
 
-      console.log(error);
+      console.log("USERS ERROR:", error);
 
       usersList.innerHTML =
         `<p style="text-align:center;color:red;">
@@ -548,7 +542,8 @@
         document.createElement("div");
 
 
-      div.className = "user";
+      div.className =
+        "user";
 
 
       if (
@@ -645,6 +640,7 @@
 
 
     loadMessages();
+
   }
 
 
@@ -652,59 +648,87 @@
      SEND MESSAGE
      ===================================== */
 
- async function sendMessage() {
+  async function sendMessage() {
 
-  const message =
-    document.getElementById("messageInput").value.trim();
+    const message =
+      document
+        .getElementById("messageInput")
+        .value
+        .trim();
 
-  const chatStatus =
-    document.getElementById("chatStatus");
 
-  if (!selectedUser) {
+    const chatStatus =
+      document.getElementById("chatStatus");
+
+
+    if (!selectedUser) {
+
+      chatStatus.innerText =
+        "Pehle kisi user ko select karein.";
+
+      return;
+    }
+
+
+    if (!message) {
+
+      chatStatus.innerText =
+        "Message likhiye.";
+
+      return;
+    }
+
+
+    const { data: userData } =
+      await supabaseClient.auth.getUser();
+
+
+    if (!userData.user) {
+
+      chatStatus.innerText =
+        "Please login first.";
+
+      return;
+    }
+
+
     chatStatus.innerText =
-      "Pehle kisi user ko select karein.";
-    return;
-  }
+      "Sending...";
 
-  if (!message) {
+
+    const { error } =
+      await supabaseClient
+        .from("message")
+        .insert({
+          sender_id: userData.user.id,
+          receiver_id: selectedUser.id,
+          message: message
+        });
+
+
+    if (error) {
+
+      console.log("SEND MESSAGE ERROR:", error);
+
+      chatStatus.innerText =
+        error.message;
+
+      return;
+    }
+
+
+    document
+      .getElementById("messageInput")
+      .value = "";
+
+
     chatStatus.innerText =
-      "Message likhiye.";
-    return;
+      "Message sent.";
+
+
+    await loadMessages();
+
   }
-
-  const { data: userData } =
-    await supabaseClient.auth.getUser();
-
-  if (!userData.user) {
-    chatStatus.innerText =
-      "Please login first.";
-    return;
-  }
-
-  const { error } =
-    await supabaseClient
-      .from("message")
-      .insert({
-        sender_id: userData.user.id,
-        receiver_id: selectedUser.id,
-        message: message
-      });
-
-  if (error) {
-    chatStatus.innerText =
-      error.message;
-    console.log(error);
-    return;
-  }
-
-  document.getElementById("messageInput").value = "";
-
-  chatStatus.innerText =
-    "Message sent.";
-
-  loadMessages();
-}
-  
 
 
   /* =====================================
@@ -754,7 +778,7 @@
 
     if (error) {
 
-      console.log(error);
+      console.log("LOAD MESSAGE ERROR:", error);
 
       return;
 
@@ -842,14 +866,22 @@
 
   async function checkUser() {
 
-    const { data } =
+    const { data, error } =
       await supabaseClient.auth
         .getUser();
 
 
+    if (error) {
+
+      console.log("CHECK USER ERROR:", error);
+
+      return;
+    }
+
+
     if (data.user) {
 
-      showChat(data.user);
+      await showChat(data.user);
 
     }
 
