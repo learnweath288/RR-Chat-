@@ -653,88 +653,58 @@
      SEND MESSAGE
      ===================================== */
 
-  async function sendMessage() {
+ async function sendMessage() {
 
-    const message =
-      document
-        .getElementById("messageInput")
-        .value
-        .trim();
+  const message =
+    document.getElementById("messageInput").value.trim();
 
+  const chatStatus =
+    document.getElementById("chatStatus");
 
-    const chatStatus =
-      document
-        .getElementById("chatStatus");
-
-
-    if (!selectedUser) {
-
-      chatStatus.innerText =
-        "Pehle kisi user ko select karein.";
-
-      return;
-
-    }
-
-
-    if (!message) {
-
-      chatStatus.innerText =
-        "Message likhiye.";
-
-      return;
-
-    }
-
-
-    const { data: userData } =
-      await supabaseClient.auth.getUser();
-
-
-    if (!userData.user) {
-
-      chatStatus.innerText =
-        "Please login first.";
-
-      return;
-
-    }
-
-
-    /* SEND MESSAGE USING RPC */
-
-    const { error } =
-      await supabaseClient.rpc(
-        "send_chat_message",
-        {
-          p_receiver_id: selectedUser.id,
-          p_message: message
-        }
-      );
-
-
-    if (error) {
-
-      chatStatus.innerText =
-        error.message;
-
-      console.log(error);
-
-      return;
-
-    }
-
-
-    document
-      .getElementById("messageInput")
-      .value = "";
-
-
+  if (!selectedUser) {
     chatStatus.innerText =
-      "Message sent.";
+      "Pehle kisi user ko select karein.";
+    return;
+  }
 
-    loadMessages();
+  if (!message) {
+    chatStatus.innerText =
+      "Message likhiye.";
+    return;
+  }
 
+  const { data: userData } =
+    await supabaseClient.auth.getUser();
+
+  if (!userData.user) {
+    chatStatus.innerText =
+      "Please login first.";
+    return;
+  }
+
+  const { error } =
+    await supabaseClient
+      .from("message")
+      .insert({
+        sender_id: userData.user.id,
+        receiver_id: selectedUser.id,
+        message: message
+      });
+
+  if (error) {
+    chatStatus.innerText =
+      error.message;
+    console.log(error);
+    return;
+  }
+
+  document.getElementById("messageInput").value = "";
+
+  chatStatus.innerText =
+    "Message sent.";
+
+  loadMessages();
+}
   }
 
 
