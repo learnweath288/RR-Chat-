@@ -23,7 +23,7 @@
 
     .container {
       max-width: 450px;
-      margin: 50px auto;
+      margin: 30px auto;
       padding: 20px;
     }
 
@@ -43,7 +43,7 @@
     .subtitle {
       text-align: center;
       color: #777;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
 
     input {
@@ -76,30 +76,56 @@
       color: #222;
     }
 
-    .secondary:hover {
-      background: #d1d5db;
-    }
-
     .logout {
       background: #ef4444;
-    }
-
-    .message {
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      background: #f3f4f6;
     }
 
     .hidden {
       display: none;
     }
 
-    #status {
+    #status,
+    #chatStatus {
       text-align: center;
       margin-top: 10px;
       color: #555;
       font-size: 14px;
+    }
+
+    #usersList {
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+
+    .user {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: #fafafa;
+    }
+
+    .user:hover {
+      background: #eef4ff;
+    }
+
+    .user.selected {
+      background: #dbeafe;
+      border-color: #2563eb;
+    }
+
+    .username {
+      font-weight: bold;
+      color: #222;
+    }
+
+    #selectedUser {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #2563eb;
+      font-weight: bold;
     }
 
     #chatBox {
@@ -111,18 +137,29 @@
       margin-bottom: 12px;
       background: #fafafa;
     }
+
+    .message {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f3f4f6;
+    }
   </style>
 </head>
 
 <body>
 
   <!-- LOGIN / SIGNUP -->
+
   <div class="container" id="authSection">
 
     <div class="card">
 
       <h1>RR Chat</h1>
-      <p class="subtitle">Private Chat App</p>
+
+      <p class="subtitle">
+        Private Chat App
+      </p>
 
       <input
         type="email"
@@ -140,7 +177,10 @@
         Login
       </button>
 
-      <button class="secondary" onclick="signup()">
+      <button
+        class="secondary"
+        onclick="signup()"
+      >
         Create Account
       </button>
 
@@ -152,39 +192,81 @@
 
 
   <!-- CHAT -->
-  <div class="container hidden" id="chatSection">
+
+  <div
+    class="container hidden"
+    id="chatSection"
+  >
 
     <div class="card">
 
       <h1>RR Chat</h1>
 
-      <p class="subtitle" id="userEmail"></p>
+      <p
+        class="subtitle"
+        id="userEmail"
+      ></p>
+
+
+      <!-- SEARCH USERS -->
 
       <input
         type="text"
-        id="receiverId"
-        placeholder="Receiver User ID"
+        id="userSearch"
+        placeholder="Search username..."
+        oninput="filterUsers()"
       >
 
+
+      <!-- USERS -->
+
+      <div id="usersList">
+
+        <p style="text-align:center;color:#888;">
+          Loading users...
+        </p>
+
+      </div>
+
+
+      <!-- SELECTED USER -->
+
+      <div id="selectedUser">
+        Select a user to start chatting
+      </div>
+
+
+      <!-- CHAT -->
+
       <div id="chatBox">
+
         <p style="text-align:center;color:#888;">
           Select a user to start chatting
         </p>
+
       </div>
+
 
       <input
         type="text"
         id="messageInput"
         placeholder="Type your message..."
+        onkeydown="handleEnter(event)"
       >
+
 
       <button onclick="sendMessage()">
         Send Message
       </button>
 
-      <button class="logout" onclick="logout()">
+
+      <button
+        class="logout"
+        onclick="logout()"
+      >
         Logout
       </button>
+
 
       <p id="chatStatus"></p>
 
@@ -199,9 +281,11 @@
      SUPABASE SETTINGS
      ===================================== */
 
-  const SUPABASE_URL = "https://jxhfkgignlkmhhfadfrn.supabase.co"
+  const SUPABASE_URL =
+    "https://jxhfkgignlkmhhfadfrn.supabase.co";
 
-  const SUPABASE_KEY = "sb_publishable_LleoXFDRl1yzthwFgZfYVg_MrqjJX0O"
+  const SUPABASE_KEY =
+    "sb_publishable_LleoXFDRl1yzthwFgZfYVg_MrqjJX0O";
 
 
   const supabaseClient =
@@ -212,70 +296,27 @@
 
 
   /* =====================================
+     CURRENT SELECTED USER
+     ===================================== */
+
+  let selectedUser = null;
+
+  let allUsers = [];
+
+
+  /* =====================================
      LOGIN
      ===================================== */
 
   async function login() {
 
     const email =
-      document.getElementById("email").value.trim();
+      document.getElementById("email")
+        .value.trim();
 
     const password =
-      document.getElementById("password").value;
-
-    const status =
-      document.getElementById("status");
-
-
-    if (!email || !password) {
-
-      status.innerText =
-        "Email aur password enter karein.";
-
-      return;
-    }
-
-
-    status.innerText = "Login ho raha hai...";
-
-
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
-
-        email: email,
-
-        password: password
-
-      });
-
-
-    if (error) {
-
-      status.innerText = error.message;
-
-      return;
-    }
-
-
-    status.innerText = "Login successful!";
-
-    showChat(data.user);
-
-  }
-
-
-  /* =====================================
-     SIGN UP
-     ===================================== */
-
-  async function signup() {
-
-    const email =
-      document.getElementById("email").value.trim();
-
-    const password =
-      document.getElementById("password").value;
-
+      document.getElementById("password")
+        .value;
 
     const status =
       document.getElementById("status");
@@ -291,22 +332,93 @@
 
 
     status.innerText =
-      "Account create ho raha hai...";
+      "Login ho raha hai...";
 
 
     const { data, error } =
-      await supabaseClient.auth.signUp({
+      await supabaseClient.auth
+        .signInWithPassword({
 
-        email: email,
+          email: email,
 
-        password: password
+          password: password
 
-      });
+        });
 
 
     if (error) {
 
-      status.innerText = error.message;
+      status.innerText =
+        error.message;
+
+      return;
+    }
+
+
+    status.innerText =
+      "Login successful!";
+
+
+    showChat(data.user);
+
+  }
+
+
+  /* =====================================
+     SIGN UP
+     ===================================== */
+
+  async function signup() {
+
+    const email =
+      document.getElementById("email")
+        .value.trim();
+
+    const password =
+      document.getElementById("password")
+        .value;
+
+    const status =
+      document.getElementById("status");
+
+
+    if (!email || !password) {
+
+      status.innerText =
+        "Email aur password enter karein.";
+
+      return;
+    }
+
+
+    if (password.length < 6) {
+
+      status.innerText =
+        "Password kam se kam 6 characters ka hona chahiye.";
+
+      return;
+    }
+
+
+    status.innerText =
+      "Account create ho raha hai...";
+
+
+    const { data, error } =
+      await supabaseClient.auth
+        .signUp({
+
+          email: email,
+
+          password: password
+
+        });
+
+
+    if (error) {
+
+      status.innerText =
+        error.message;
 
       return;
     }
@@ -326,7 +438,7 @@
      SHOW CHAT
      ===================================== */
 
-  function showChat(user) {
+  async function showChat(user) {
 
     document
       .getElementById("authSection")
@@ -341,42 +453,198 @@
     document
       .getElementById("userEmail")
       .innerText =
-        user.email;
+        "Logged in: " + user.email;
 
 
-    loadMessages();
+    await loadUsers();
 
   }
 
 
   /* =====================================
-     CHECK LOGIN
+     LOAD USERS
      ===================================== */
 
-  async function checkUser() {
+  async function loadUsers() {
 
-    const { data } =
+    const usersList =
+      document.getElementById("usersList");
+
+
+    usersList.innerHTML =
+      `<p style="text-align:center;color:#888;">
+        Loading users...
+      </p>`;
+
+
+    const { data, error } =
+      await supabaseClient
+        .from("profiles")
+        .select("id, username")
+        .order("username");
+
+
+    if (error) {
+
+      console.log(error);
+
+      usersList.innerHTML =
+        `<p style="text-align:center;color:red;">
+          Users load nahi ho rahe.
+        </p>`;
+
+      return;
+    }
+
+
+    const { data: userData } =
       await supabaseClient.auth.getUser();
 
 
-    if (data.user) {
+    const myId =
+      userData.user?.id;
 
-      showChat(data.user);
 
-    }
+    allUsers =
+      data.filter(function(user) {
+
+        return user.id !== myId;
+
+      });
+
+
+    displayUsers(allUsers);
 
   }
 
 
   /* =====================================
-     LOGOUT
+     DISPLAY USERS
      ===================================== */
 
-  async function logout() {
+  function displayUsers(users) {
 
-    await supabaseClient.auth.signOut();
+    const usersList =
+      document.getElementById("usersList");
 
-    location.reload();
+
+    usersList.innerHTML = "";
+
+
+    if (users.length === 0) {
+
+      usersList.innerHTML =
+        `<p style="text-align:center;color:#888;">
+          Abhi koi doosra user nahi hai.
+        </p>`;
+
+      return;
+    }
+
+
+    users.forEach(function(user) {
+
+      const div =
+        document.createElement("div");
+
+
+      div.className = "user";
+
+
+      if (
+        selectedUser &&
+        selectedUser.id === user.id
+      ) {
+
+        div.classList.add("selected");
+
+      }
+
+
+      div.innerHTML =
+        `<div class="username">
+          👤 ${user.username}
+        </div>`;
+
+
+      div.onclick = function() {
+
+        selectUser(user);
+
+      };
+
+
+      usersList.appendChild(div);
+
+    });
+
+  }
+
+
+  /* =====================================
+     SEARCH USERS
+     ===================================== */
+
+  function filterUsers() {
+
+    const search =
+      document
+        .getElementById("userSearch")
+        .value
+        .toLowerCase()
+        .trim();
+
+
+    const filtered =
+      allUsers.filter(function(user) {
+
+        return user.username
+          .toLowerCase()
+          .includes(search);
+
+      });
+
+
+    displayUsers(filtered);
+
+  }
+
+
+  /* =====================================
+     SELECT USER
+     ===================================== */
+
+  function selectUser(user) {
+
+    selectedUser =
+      user;
+
+
+    document
+      .getElementById("selectedUser")
+      .innerText =
+        "Chat with " + user.username;
+
+
+    displayUsers(
+      allUsers.filter(function(item) {
+
+        const search =
+          document
+            .getElementById("userSearch")
+            .value
+            .toLowerCase()
+            .trim();
+
+        return item.username
+          .toLowerCase()
+          .includes(search);
+
+      })
+    );
+
+
+    loadMessages();
 
   }
 
@@ -387,13 +655,6 @@
 
   async function sendMessage() {
 
-    const receiverId =
-      document
-        .getElementById("receiverId")
-        .value
-        .trim();
-
-
     const message =
       document
         .getElementById("messageInput")
@@ -402,13 +663,14 @@
 
 
     const chatStatus =
-      document.getElementById("chatStatus");
+      document
+        .getElementById("chatStatus");
 
 
-    if (!receiverId) {
+    if (!selectedUser) {
 
       chatStatus.innerText =
-        "Receiver User ID enter karein.";
+        "Pehle kisi user ko select karein.";
 
       return;
 
@@ -448,7 +710,7 @@
             userData.user.id,
 
           receiver_id:
-            receiverId,
+            selectedUser.id,
 
           message:
             message
@@ -485,25 +747,30 @@
 
   async function loadMessages() {
 
-    const receiverId =
-      document
-        .getElementById("receiverId")
-        .value
-        .trim();
+    if (!selectedUser) {
 
+      return;
 
-    if (!receiverId) return;
+    }
 
 
     const { data: userData } =
       await supabaseClient.auth.getUser();
 
 
-    if (!userData.user) return;
+    if (!userData.user) {
+
+      return;
+
+    }
 
 
     const myId =
       userData.user.id;
+
+
+    const receiverId =
+      selectedUser.id;
 
 
     const { data, error } =
@@ -535,13 +802,26 @@
     chatBox.innerHTML = "";
 
 
+    if (!data || data.length === 0) {
+
+      chatBox.innerHTML =
+        `<p style="text-align:center;color:#888;">
+          No messages yet.
+        </p>`;
+
+      return;
+
+    }
+
+
     data.forEach(function(item) {
 
       const div =
         document.createElement("div");
 
 
-      div.className = "message";
+      div.className =
+        "message";
 
 
       div.innerText =
@@ -555,6 +835,57 @@
 
     chatBox.scrollTop =
       chatBox.scrollHeight;
+
+  }
+
+
+  /* =====================================
+     ENTER KEY
+     ===================================== */
+
+  function handleEnter(event) {
+
+    if (event.key === "Enter") {
+
+      sendMessage();
+
+    }
+
+  }
+
+
+  /* =====================================
+     LOGOUT
+     ===================================== */
+
+  async function logout() {
+
+    await supabaseClient
+      .auth
+      .signOut();
+
+
+    location.reload();
+
+  }
+
+
+  /* =====================================
+     CHECK LOGIN
+     ===================================== */
+
+  async function checkUser() {
+
+    const { data } =
+      await supabaseClient.auth
+        .getUser();
+
+
+    if (data.user) {
+
+      showChat(data.user);
+
+    }
 
   }
 
