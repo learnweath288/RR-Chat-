@@ -285,7 +285,7 @@
     "https://jxhfkgignlkmhhfadfrn.supabase.co";
 
   const SUPABASE_KEY =
-    "sb_publishable_LleoXFDRl1yzthwFgZfYVg_MrqjJX0O";
+    "sb_publishable_LleoXFDRl1yzthwFgZfYg_MrqjJX0O";
 
 
   const supabaseClient =
@@ -701,27 +701,24 @@
     }
 
 
+    /* SEND MESSAGE USING RPC */
+
     const { error } =
-      await supabaseClient
-        .from("message")
-        .insert({
-
-          sender_id:
-            userData.user.id,
-
-          receiver_id:
-            selectedUser.id,
-
-          message:
-            message
-
-        });
+      await supabaseClient.rpc(
+        "send_chat_message",
+        {
+          p_receiver_id: selectedUser.id,
+          p_message: message
+        }
+      );
 
 
     if (error) {
 
       chatStatus.innerText =
         error.message;
+
+      console.log(error);
 
       return;
 
