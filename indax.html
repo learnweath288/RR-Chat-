@@ -3,12 +3,591 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>RR Chat</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 450px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #777;
+      margin-bottom: 25px;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .secondary {
+      background: #e5e7eb;
+      color: #222;
+    }
+
+    .secondary:hover {
+      background: #d1d5db;
+    }
+
+    .logout {
+      background: #ef4444;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f3f4f6;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #status {
+      text-align: center;
+      margin-top: 10px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    #chatBox {
+      height: 350px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      background: #fafafa;
+    }
+  </style>
 </head>
+
 <body>
 
-  <h1>RR Chat</h1>
-  <p>Chat App Loading...</p>
+  <!-- LOGIN / SIGNUP -->
+  <div class="container" id="authSection">
+
+    <div class="card">
+
+      <h1>RR Chat</h1>
+      <p class="subtitle">Private Chat App</p>
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Email address"
+      >
+
+      <input
+        type="password"
+        id="password"
+        placeholder="Password"
+      >
+
+      <button onclick="login()">
+        Login
+      </button>
+
+      <button class="secondary" onclick="signup()">
+        Create Account
+      </button>
+
+      <p id="status"></p>
+
+    </div>
+
+  </div>
+
+
+  <!-- CHAT -->
+  <div class="container hidden" id="chatSection">
+
+    <div class="card">
+
+      <h1>RR Chat</h1>
+
+      <p class="subtitle" id="userEmail"></p>
+
+      <input
+        type="text"
+        id="receiverId"
+        placeholder="Receiver User ID"
+      >
+
+      <div id="chatBox">
+        <p style="text-align:center;color:#888;">
+          Select a user to start chatting
+        </p>
+      </div>
+
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Type your message..."
+      >
+
+      <button onclick="sendMessage()">
+        Send Message
+      </button>
+
+      <button class="logout" onclick="logout()">
+        Logout
+      </button>
+
+      <p id="chatStatus"></p>
+
+    </div>
+
+  </div>
+
+
+<script>
+
+  /* =====================================
+     SUPABASE SETTINGS
+     ===================================== */
+
+  const SUPABASE_URL = "PASTE_YOUR_SUPABASE_URL_HERE";
+
+  const SUPABASE_KEY = "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+
+
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+
+  /* =====================================
+     LOGIN
+     ===================================== */
+
+  async function login() {
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
+
+    const status =
+      document.getElementById("status");
+
+
+    if (!email || !password) {
+
+      status.innerText =
+        "Email aur password enter karein.";
+
+      return;
+    }
+
+
+    status.innerText = "Login ho raha hai...";
+
+
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+
+        email: email,
+
+        password: password
+
+      });
+
+
+    if (error) {
+
+      status.innerText = error.message;
+
+      return;
+    }
+
+
+    status.innerText = "Login successful!";
+
+    showChat(data.user);
+
+  }
+
+
+  /* =====================================
+     SIGN UP
+     ===================================== */
+
+  async function signup() {
+
+    const email =
+      document.getElementById("email").value.trim();
+
+    const password =
+      document.getElementById("password").value;
+
+
+    const status =
+      document.getElementById("status");
+
+
+    if (!email || !password) {
+
+      status.innerText =
+        "Email aur password enter karein.";
+
+      return;
+    }
+
+
+    status.innerText =
+      "Account create ho raha hai...";
+
+
+    const { data, error } =
+      await supabaseClient.auth.signUp({
+
+        email: email,
+
+        password: password
+
+      });
+
+
+    if (error) {
+
+      status.innerText = error.message;
+
+      return;
+    }
+
+
+    if (data.user) {
+
+      status.innerText =
+        "Account successfully create ho gaya.";
+
+    }
+
+  }
+
+
+  /* =====================================
+     SHOW CHAT
+     ===================================== */
+
+  function showChat(user) {
+
+    document
+      .getElementById("authSection")
+      .classList.add("hidden");
+
+
+    document
+      .getElementById("chatSection")
+      .classList.remove("hidden");
+
+
+    document
+      .getElementById("userEmail")
+      .innerText =
+        user.email;
+
+
+    loadMessages();
+
+  }
+
+
+  /* =====================================
+     CHECK LOGIN
+     ===================================== */
+
+  async function checkUser() {
+
+    const { data } =
+      await supabaseClient.auth.getUser();
+
+
+    if (data.user) {
+
+      showChat(data.user);
+
+    }
+
+  }
+
+
+  /* =====================================
+     LOGOUT
+     ===================================== */
+
+  async function logout() {
+
+    await supabaseClient.auth.signOut();
+
+    location.reload();
+
+  }
+
+
+  /* =====================================
+     SEND MESSAGE
+     ===================================== */
+
+  async function sendMessage() {
+
+    const receiverId =
+      document
+        .getElementById("receiverId")
+        .value
+        .trim();
+
+
+    const message =
+      document
+        .getElementById("messageInput")
+        .value
+        .trim();
+
+
+    const chatStatus =
+      document.getElementById("chatStatus");
+
+
+    if (!receiverId) {
+
+      chatStatus.innerText =
+        "Receiver User ID enter karein.";
+
+      return;
+
+    }
+
+
+    if (!message) {
+
+      chatStatus.innerText =
+        "Message likhiye.";
+
+      return;
+
+    }
+
+
+    const { data: userData } =
+      await supabaseClient.auth.getUser();
+
+
+    if (!userData.user) {
+
+      chatStatus.innerText =
+        "Please login first.";
+
+      return;
+
+    }
+
+
+    const { error } =
+      await supabaseClient
+        .from("message")
+        .insert({
+
+          sender_id:
+            userData.user.id,
+
+          receiver_id:
+            receiverId,
+
+          message:
+            message
+
+        });
+
+
+    if (error) {
+
+      chatStatus.innerText =
+        error.message;
+
+      return;
+
+    }
+
+
+    document
+      .getElementById("messageInput")
+      .value = "";
+
+
+    chatStatus.innerText =
+      "Message sent.";
+
+    loadMessages();
+
+  }
+
+
+  /* =====================================
+     LOAD MESSAGES
+     ===================================== */
+
+  async function loadMessages() {
+
+    const receiverId =
+      document
+        .getElementById("receiverId")
+        .value
+        .trim();
+
+
+    if (!receiverId) return;
+
+
+    const { data: userData } =
+      await supabaseClient.auth.getUser();
+
+
+    if (!userData.user) return;
+
+
+    const myId =
+      userData.user.id;
+
+
+    const { data, error } =
+      await supabaseClient
+        .from("message")
+        .select("*")
+        .or(
+          `and(sender_id.eq.${myId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${myId})`
+        )
+        .order(
+          "created_at",
+          { ascending: true }
+        );
+
+
+    if (error) {
+
+      console.log(error);
+
+      return;
+
+    }
+
+
+    const chatBox =
+      document.getElementById("chatBox");
+
+
+    chatBox.innerHTML = "";
+
+
+    data.forEach(function(item) {
+
+      const div =
+        document.createElement("div");
+
+
+      div.className = "message";
+
+
+      div.innerText =
+        item.message;
+
+
+      chatBox.appendChild(div);
+
+    });
+
+
+    chatBox.scrollTop =
+      chatBox.scrollHeight;
+
+  }
+
+
+  /* =====================================
+     REALTIME
+     ===================================== */
+
+  supabaseClient
+    .channel("message-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "message"
+      },
+      function() {
+
+        loadMessages();
+
+      }
+    )
+    .subscribe();
+
+
+  /* =====================================
+     START APP
+     ===================================== */
+
+  checkUser();
+
+</script>
 
 </body>
 </html>
